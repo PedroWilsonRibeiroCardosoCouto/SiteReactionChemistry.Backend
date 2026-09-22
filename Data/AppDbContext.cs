@@ -7,7 +7,7 @@ namespace ReactionChemistry.Backend.Data
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-        // Representa a tabela no banco de dados, utilizando o seu modelo GameOk
+        // Representa a tabela no banco de dados, utilizando o modelo ApprovedGame.
         public DbSet<ApprovedGame> Games { get; set; }
     }
 }
