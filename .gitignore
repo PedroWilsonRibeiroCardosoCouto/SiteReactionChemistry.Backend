@@ -1,0 +1,16 @@
+# Pastas de compilação do .NET
+[Bb]in/
+[Oo]bj/
+
+# Ficheiros temporários e de cache
+*.user
+*.userprefs
+*.suo
+.vs/
+.vscode/
+*.log
+
+# Opcional: Se algum dia usar SQLite local
+*.db
+*.db-shm
+*.db-wal
