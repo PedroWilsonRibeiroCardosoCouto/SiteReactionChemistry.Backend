@@ -4,3 +4,16 @@ GET {{ReactionChemistry.Backend_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+### Criar URL temporária para upload de build
+POST {{ReactionChemistry.Backend_HostAddress}}/api/Upload/presign
+Content-Type: application/json
+
+{
+  "fileName": "ReactionChemistry_Windows.zip",
+  "platform": "PC Windows"
+}
+
+### Preparar URL de download para um build específico (substitua o ID e a chave)
+GET {{ReactionChemistry.Backend_HostAddress}}/api/Download/00000000-0000-0000-0000-000000000000?key=builds/arquivo.zip
+Accept: application/json

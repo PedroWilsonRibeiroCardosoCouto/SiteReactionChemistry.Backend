@@ -36,5 +36,9 @@ namespace ReactionChemistry.Backend.Models
 
         // Opcional (?) - Especificações dos requisitos de sistema
         public string? SystemRequirements { get; set; } 
+
+        public string? TeamMembersJson { get; set; }
+
+        public string? BuildsJson { get; set; }
     }
 }

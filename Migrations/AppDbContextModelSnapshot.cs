@@ -28,6 +28,9 @@ namespace ReactionChemistry.Backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("BuildsJson")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -55,6 +58,9 @@ namespace ReactionChemistry.Backend.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("SystemRequirements")
+                        .HasColumnType("text");
+
+                    b.Property<string>("TeamMembersJson")
                         .HasColumnType("text");
 
                     b.Property<string>("Title")
