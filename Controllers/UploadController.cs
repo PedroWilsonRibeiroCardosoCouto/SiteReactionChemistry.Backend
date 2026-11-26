@@ -1,5 +1,6 @@
 using Amazon.S3;
 using Amazon.S3.Model;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using ReactionChemistry.Backend.Contracts;
@@ -10,6 +11,7 @@ namespace ReactionChemistry.Backend.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public sealed class UploadController : ControllerBase
 {
     private static readonly string[] SupportedPlatforms =

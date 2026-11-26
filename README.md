@@ -52,3 +52,30 @@ Gere o esquema relacional no banco de dados e inicie o microsserviço:
 dotnet run"
 
 A interface do Swagger estará disponível para testes dos endpoints em http://localhost:<porta>/swagger.
+
+## Contas, permissões e engajamento
+
+O primeiro acesso com Google ou GitHub cria uma conta automaticamente. Configure as credenciais OAuth nos *User Secrets* durante o desenvolvimento e em variáveis de ambiente no servidor:
+
+```powershell
+dotnet user-secrets set "Authentication:JwtSigningKey" "<chave-aleatoria-com-pelo-menos-32-bytes>"
+dotnet user-secrets set "Authentication:PublicBaseUrl" "https://<dominio-da-api>"
+dotnet user-secrets set "Authentication:BootstrapAdminEmail" "admin@exemplo.com"
+dotnet user-secrets set "Authentication:Google:ClientId" "<client-id>"
+dotnet user-secrets set "Authentication:Google:ClientSecret" "<client-secret>"
+dotnet user-secrets set "Authentication:GitHub:ClientId" "<client-id>"
+dotnet user-secrets set "Authentication:GitHub:ClientSecret" "<client-secret>"
+dotnet user-secrets set "Frontend:BaseUrl" "http://localhost:5500/index.html"
+```
+
+Cadastre na Google Cloud Console e no GitHub OAuth App as URLs de callback `https://<dominio-da-api>/signin-google` e `https://<dominio-da-api>/signin-github`. O email configurado em `BootstrapAdminEmail` recebe papel de administrador após autenticar com email verificado. Nunca configure credenciais OAuth ou a chave JWT no frontend.
+
+Defina `Authentication:PublicBaseUrl` para a origem HTTPS pública da API (sem caminho), `Frontend:BaseUrl` para a URL exata da página publicada e `Frontend:AllowedOrigins` para as origens permitidas pelo CORS (em produção, use somente a origem HTTPS do frontend). Os valores locais em `appsettings.json` são apenas para desenvolvimento.
+
+Depois de configurar o banco, aplique as migrações:
+
+```powershell
+dotnet ef database update
+```
+
+Administradores podem gerenciar contas, suspender usuários e moderar todos os jogos e comentários. Usuários autenticados podem editar o próprio perfil e gerenciar apenas os próprios jogos; jogos criados ou editados por usuários voltam para revisão privada. Visitantes podem consultar jogos públicos, registrar visualizações e baixar builds. Comentários exigem autenticação. O painel consolida visualizações, solicitações de link de download, comentários recebidos e jogos publicados por desenvolvedor; como o arquivo é entregue diretamente pelo R2, a API contabiliza o pedido de link, não a conclusão do download.

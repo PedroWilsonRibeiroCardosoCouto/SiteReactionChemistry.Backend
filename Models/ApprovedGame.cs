@@ -40,5 +40,10 @@ namespace ReactionChemistry.Backend.Models
         public string? TeamMembersJson { get; set; }
 
         public string? BuildsJson { get; set; }
+
+        public Guid? OwnerId { get; set; }
+        public AppUser? Owner { get; set; }
+        public int ViewCount { get; set; }
+        public int DownloadCount { get; set; }
     }
 }

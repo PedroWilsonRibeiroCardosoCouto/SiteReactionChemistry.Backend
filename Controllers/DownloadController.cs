@@ -1,11 +1,14 @@
 using Amazon.S3;
 using Amazon.S3.Model;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ReactionChemistry.Backend.Data;
+using ReactionChemistry.Backend.Models;
 using System.Collections.Generic;
 using System;
 using System.Linq;
+using System.Security.Claims;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -43,8 +46,12 @@ namespace ReactionChemistry.Backend.Controllers
             var game = await _context.Games.FirstOrDefaultAsync(
                 g => g.Id == gameId && g.IsActive,
                 cancellationToken);
-            
-            if (game == null)
+            var userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var parsedUserId)
+                ? parsedUserId
+                : (Guid?)null;
+            var isAdmin = User.IsInRole(UserRoles.Admin);
+            var isPublic = game?.Visibility == "Pública";
+            if (game == null || (!isPublic && !isAdmin && game.OwnerId != userId))
             {
                 return NotFound("Jogo não encontrado ou não autorizado para download.");
             }
@@ -89,6 +96,11 @@ namespace ReactionChemistry.Backend.Controllers
                 };
 
                 string urlTemporaria = _s3Client.GetPreSignedURL(request);
+                await _context.Games
+                    .Where(item => item.Id == gameId)
+                    .ExecuteUpdateAsync(
+                        update => update.SetProperty(item => item.DownloadCount, item => item.DownloadCount + 1),
+                        cancellationToken);
 
                 return Ok(new
                 {
