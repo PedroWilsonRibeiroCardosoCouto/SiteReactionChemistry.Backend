@@ -86,8 +86,17 @@ if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(goo
         options.Events.OnCreatingTicket = context =>
         {
             context.Identity?.AddClaim(new Claim("identity_provider", "google"));
-            var verified = context.User.TryGetProperty("verified_email", out var value)
-                && value.ValueKind == JsonValueKind.True;
+
+            var verified =
+                (context.User.TryGetProperty("email_verified", out var emailVerified)
+                    && (emailVerified.ValueKind == JsonValueKind.True
+                        || (emailVerified.ValueKind == JsonValueKind.String
+                            && bool.TryParse(emailVerified.GetString(), out var ev) && ev)))
+                || (context.User.TryGetProperty("verified_email", out var verifiedEmail)
+                    && (verifiedEmail.ValueKind == JsonValueKind.True
+                        || (verifiedEmail.ValueKind == JsonValueKind.String
+                            && bool.TryParse(verifiedEmail.GetString(), out var ve) && ve)));
+
             context.Identity?.AddClaim(new Claim("email_verified", verified ? "true" : "false"));
             return Task.CompletedTask;
         };
