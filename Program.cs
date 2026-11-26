@@ -119,53 +119,75 @@ if (!string.IsNullOrWhiteSpace(githubClientId) && !string.IsNullOrWhiteSpace(git
         options.Scope.Add("read:user");
         options.Scope.Add("user:email");
         options.Events.OnCreatingTicket = async context =>
-        {
-            context.Identity?.AddClaim(new Claim("identity_provider", "github"));
-            if (context.User.TryGetProperty("id", out var id))
-            {
-                context.Identity?.AddClaim(new Claim(ClaimTypes.NameIdentifier, id.ToString()));
-            }
-            if (context.User.TryGetProperty("name", out var name) && name.ValueKind == JsonValueKind.String)
-            {
-                context.Identity?.AddClaim(new Claim(ClaimTypes.Name, name.GetString() ?? string.Empty));
-            }
-            if (context.User.TryGetProperty("email", out var publicEmail)
-                && publicEmail.ValueKind == JsonValueKind.String
-                && !string.IsNullOrWhiteSpace(publicEmail.GetString()))
-            {
-                context.Identity?.AddClaim(new Claim(ClaimTypes.Email, publicEmail.GetString()!));
-            }
+     {
+         context.Identity?.AddClaim(new Claim("identity_provider", "github"));
 
-            using (var request = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user/emails"))
-            {
-                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
-                    "Bearer", context.AccessToken);
-                request.Headers.UserAgent.ParseAdd("ReactionChemistry");
-                using var response = await context.Backchannel.SendAsync(request, context.HttpContext.RequestAborted);
-                response.EnsureSuccessStatusCode();
-                using var emails = JsonDocument.Parse(await response.Content.ReadAsStringAsync(context.HttpContext.RequestAborted));
-                var verifiedEmail = emails.RootElement.EnumerateArray()
-                    .FirstOrDefault(email =>
-                        email.TryGetProperty("primary", out var primary) && primary.ValueKind == JsonValueKind.True
-                        && email.TryGetProperty("verified", out var verified) && verified.ValueKind == JsonValueKind.True);
-                if (verifiedEmail.ValueKind == JsonValueKind.Object
-                    && verifiedEmail.TryGetProperty("email", out var emailValue))
-                {
-                    var existingEmails = context.Identity?.FindAll(ClaimTypes.Email).ToArray() ?? [];
-                    foreach (var existingEmail in existingEmails)
-                    {
-                        context.Identity?.RemoveClaim(existingEmail);
-                    }
-                    context.Identity?.AddClaim(new Claim(ClaimTypes.Email, emailValue.GetString() ?? string.Empty));
-                    context.Identity?.AddClaim(new Claim("email_verified", "true"));
-                }
-            }
+         using (var userRequest = new HttpRequestMessage(HttpMethod.Get, context.Options.UserInformationEndpoint))
+         {
+             userRequest.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+             userRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+                 "Bearer", context.AccessToken);
+             userRequest.Headers.UserAgent.ParseAdd("ReactionChemistry");
 
-            if (context.Identity?.FindFirst("email_verified") is null)
-            {
-                context.Identity?.AddClaim(new Claim("email_verified", "false"));
-            }
-        };
+             using var userResponse = await context.Backchannel.SendAsync(userRequest, context.HttpContext.RequestAborted);
+             userResponse.EnsureSuccessStatusCode();
+
+             using var userDoc = JsonDocument.Parse(await userResponse.Content.ReadAsStringAsync(context.HttpContext.RequestAborted));
+             var userRoot = userDoc.RootElement;
+
+             if (userRoot.TryGetProperty("id", out var id))
+             {
+                 context.Identity?.AddClaim(new Claim(ClaimTypes.NameIdentifier, id.ToString()));
+             }
+
+             var displayName = userRoot.TryGetProperty("name", out var name) && name.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(name.GetString())
+                 ? name.GetString()
+                 : (userRoot.TryGetProperty("login", out var login) && login.ValueKind == JsonValueKind.String ? login.GetString() : string.Empty);
+
+             if (!string.IsNullOrWhiteSpace(displayName))
+             {
+                 context.Identity?.AddClaim(new Claim(ClaimTypes.Name, displayName));
+             }
+
+             if (userRoot.TryGetProperty("email", out var publicEmail)
+                 && publicEmail.ValueKind == JsonValueKind.String
+                 && !string.IsNullOrWhiteSpace(publicEmail.GetString()))
+             {
+                 context.Identity?.AddClaim(new Claim(ClaimTypes.Email, publicEmail.GetString()!));
+             }
+         }
+
+         using (var request = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user/emails"))
+         {
+             request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+             request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+                 "Bearer", context.AccessToken);
+             request.Headers.UserAgent.ParseAdd("ReactionChemistry");
+             using var response = await context.Backchannel.SendAsync(request, context.HttpContext.RequestAborted);
+             response.EnsureSuccessStatusCode();
+             using var emails = JsonDocument.Parse(await response.Content.ReadAsStringAsync(context.HttpContext.RequestAborted));
+             var verifiedEmail = emails.RootElement.EnumerateArray()
+                 .FirstOrDefault(email =>
+                     email.TryGetProperty("primary", out var primary) && primary.ValueKind == JsonValueKind.True
+                     && email.TryGetProperty("verified", out var verified) && verified.ValueKind == JsonValueKind.True);
+             if (verifiedEmail.ValueKind == JsonValueKind.Object
+                 && verifiedEmail.TryGetProperty("email", out var emailValue))
+             {
+                 var existingEmails = context.Identity?.FindAll(ClaimTypes.Email).ToArray() ?? [];
+                 foreach (var existingEmail in existingEmails)
+                 {
+                     context.Identity?.RemoveClaim(existingEmail);
+                 }
+                 context.Identity?.AddClaim(new Claim(ClaimTypes.Email, emailValue.GetString() ?? string.Empty));
+                 context.Identity?.AddClaim(new Claim("email_verified", "true"));
+             }
+         }
+
+         if (context.Identity?.FindFirst("email_verified") is null)
+         {
+             context.Identity?.AddClaim(new Claim("email_verified", "false"));
+         }
+     };
     });
 }
 
