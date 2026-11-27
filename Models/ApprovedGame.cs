@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
 namespace ReactionChemistry.Backend.Models
 {
@@ -41,9 +44,37 @@ namespace ReactionChemistry.Backend.Models
 
         public string? BuildsJson { get; set; }
 
+        // --- CLASSIFICAÇÃO (NICHO, MATÉRIA/ÁREA E GÊNEROS) ---
+        public string? Niche { get; set; }
+        public string? Subject { get; set; }
+        public string? GenresJson { get; set; }
+
+        // --- ARTES E IDENTIDADE VISUAL (CAPA E GALERIA) ---
+        public string? CoverImageKey { get; set; }
+        public string? GalleryImagesJson { get; set; }
+
+        // --- NETWORK / CONTATO (OPCIONAIS) ---
+        public string? ContactPhone { get; set; }
+        public string? SocialLink { get; set; }
+
         public Guid? OwnerId { get; set; }
         public AppUser? Owner { get; set; }
         public int ViewCount { get; set; }
         public int DownloadCount { get; set; }
+
+        // --- CAMPOS CALCULADOS NA RESPOSTA DA API ---
+        [NotMapped, ValidateNever]
+        public string? CoverImageUrl { get; set; }
+
+        [NotMapped, ValidateNever]
+        public List<GameMediaItem>? GalleryImages { get; set; } = [];
+
+        [NotMapped, ValidateNever]
+        public double AverageRating { get; set; }
+
+        [NotMapped, ValidateNever]
+        public int RatingCount { get; set; }
     }
+
+    public sealed record GameMediaItem(string Key, string Url, string FileName);
 }

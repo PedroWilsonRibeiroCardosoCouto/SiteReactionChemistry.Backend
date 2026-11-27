@@ -76,6 +76,12 @@ namespace ReactionChemistry.Backend.Migrations
                     b.Property<string>("BuildsJson")
                         .HasColumnType("text");
 
+                    b.Property<string>("ContactPhone")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CoverImageKey")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -94,8 +100,17 @@ namespace ReactionChemistry.Backend.Migrations
                     b.Property<int>("DownloadCount")
                         .HasColumnType("integer");
 
+                    b.Property<string>("GalleryImagesJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("GenresJson")
+                        .HasColumnType("text");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("Niche")
+                        .HasColumnType("text");
 
                     b.Property<Guid?>("OwnerId")
                         .HasColumnType("uuid");
@@ -106,6 +121,12 @@ namespace ReactionChemistry.Backend.Migrations
 
                     b.Property<string>("S3ObjectKey")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SocialLink")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Subject")
                         .HasColumnType("text");
 
                     b.Property<string>("SystemRequirements")
@@ -183,6 +204,9 @@ namespace ReactionChemistry.Backend.Migrations
 
                     b.Property<Guid>("GameId")
                         .HasColumnType("uuid");
+
+                    b.Property<int?>("Rating")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");

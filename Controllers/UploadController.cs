@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using ReactionChemistry.Backend.Contracts;
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace ReactionChemistry.Backend.Controllers;
@@ -21,6 +22,16 @@ public sealed class UploadController : ControllerBase
         "Mobile Android",
         "VR"
     ];
+
+    private static readonly Dictionary<string, string> SupportedImageContentTypes =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            [".png"] = "image/png",
+            [".jpg"] = "image/jpeg",
+            [".jpeg"] = "image/jpeg",
+            [".webp"] = "image/webp",
+            [".gif"] = "image/gif"
+        };
 
     private readonly IAmazonS3 _s3Client;
     private readonly string _bucketName;
@@ -74,6 +85,54 @@ public sealed class UploadController : ControllerBase
             : "application/zip";
         var s3ObjectKey = $"builds/{Guid.NewGuid():N}{extension}";
 
+        return CreatePresignedPutResponse(s3ObjectKey, contentType, platform);
+    }
+
+    /// <summary>Cria uma URL PUT temporária para enviar uma imagem (capa ou arte de galeria) ao Cloudflare R2.</summary>
+    [HttpPost("presign-media")]
+    [EnableRateLimiting("UploadPresign")]
+    [ProducesResponseType<UploadPresignResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status502BadGateway)]
+    public ActionResult<UploadPresignResponse> CreatePresignedMediaUpload(
+        [FromBody] CreateMediaUploadPresignRequest request)
+    {
+        var mediaKind = request.MediaKind.Trim().ToLowerInvariant();
+        var folder = mediaKind switch
+        {
+            "cover" => "media/covers",
+            "gallery" => "media/gallery",
+            _ => null
+        };
+
+        if (folder is null)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Tipo de mídia inválido.",
+                Detail = "Use 'cover' para capa ou 'gallery' para imagens da galeria."
+            });
+        }
+
+        var extension = Path.GetExtension(request.FileName).ToLowerInvariant();
+        if (!SupportedImageContentTypes.TryGetValue(extension, out var contentType))
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Formato de imagem não suportado.",
+                Detail = "Envie imagens nos formatos .png, .jpg, .jpeg, .webp ou .gif."
+            });
+        }
+
+        var s3ObjectKey = $"{folder}/{Guid.NewGuid():N}{extension}";
+        return CreatePresignedPutResponse(s3ObjectKey, contentType, mediaKind);
+    }
+
+    private ActionResult<UploadPresignResponse> CreatePresignedPutResponse(
+        string s3ObjectKey,
+        string contentType,
+        string contextLabel)
+    {
         try
         {
             var presignRequest = new GetPreSignedUrlRequest
@@ -90,7 +149,7 @@ public sealed class UploadController : ControllerBase
         }
         catch (AmazonS3Exception exception)
         {
-            _logger.LogError(exception, "Falha ao gerar URL de upload para a plataforma {Platform}.", platform);
+            _logger.LogError(exception, "Falha ao gerar URL de upload para {Context}.", contextLabel);
             return Problem(
                 title: "Não foi possível preparar o upload.",
                 statusCode: StatusCodes.Status502BadGateway);
